@@ -1,0 +1,98 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>모아 코치</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Do+Hyeon&family=IBM+Plex+Mono:wght@500&family=IBM+Plex+Sans+KR:wght@400;500;700&display=swap">
+<link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <h1>모아 코치</h1>
+    <p>게임 화면대로 판을 칠하고 조각을 고르면, 가장 오래 버틸 수 있는 수를 찾습니다.</p>
+  </header>
+
+  <div class="cols">
+    <!-- 왼쪽: 판 입력 -->
+    <section class="panel" aria-labelledby="h-board">
+      <div class="row between">
+        <h2 id="h-board">게임판 (10×16)</h2>
+        <button class="btn small" id="btn-clear" type="button">판 비우기</button>
+      </div>
+      <div class="seg" role="group" aria-label="칠하기 도구">
+        <button type="button" data-tool="fill" aria-pressed="true">■ 블록</button>
+        <button type="button" data-tool="empty" aria-pressed="false">□ 빈칸</button>
+        <button type="button" data-tool="swap" aria-pressed="false"><span class="c-swap">⇄</span> 바꿔 뽑기 아이콘</button>
+        <button type="button" data-tool="dot" aria-pressed="false"><span class="c-dot">◎</span> 점 찍기 아이콘</button>
+      </div>
+      <div id="board" class="board" aria-label="게임판 입력"></div>
+      <p class="small muted">칸을 누르거나 드래그해서 칠해요. 아이콘 도구는 같은 칸을 한 번 더 누르면 지워져요.</p>
+    </section>
+
+    <!-- 오른쪽: 조각, 능력, 결과 -->
+    <div class="stack">
+      <section class="panel" aria-labelledby="h-hand">
+        <div class="row between">
+          <h2 id="h-hand">보유 조각</h2>
+          <span class="small muted">칸을 누르면 빼요</span>
+        </div>
+        <div class="hand" id="hand"></div>
+        <div class="label">조각 추가</div>
+        <div class="pieces" id="palette"></div>
+      </section>
+
+      <section class="panel" aria-labelledby="h-state">
+        <h2 id="h-state">능력과 진행 상황</h2>
+        <div class="nums">
+          <div class="num-in"><label for="in-dots">점 찍기</label><div class="stepper"><button type="button" data-step="dots" data-d="-1" aria-label="점 찍기 줄이기">−</button><input id="in-dots" inputmode="numeric"><button type="button" data-step="dots" data-d="1" aria-label="점 찍기 늘리기">+</button></div></div>
+          <div class="num-in"><label for="in-swaps">바꿔 뽑기</label><div class="stepper"><button type="button" data-step="swaps" data-d="-1" aria-label="바꿔 뽑기 줄이기">−</button><input id="in-swaps" inputmode="numeric"><button type="button" data-step="swaps" data-d="1" aria-label="바꿔 뽑기 늘리기">+</button></div></div>
+          <div class="num-in"><label for="in-counter">다음 능력 획득까지</label><div class="stepper"><button type="button" data-step="counter" data-d="-1" aria-label="줄이기">−</button><input id="in-counter" inputmode="numeric"><button type="button" data-step="counter" data-d="1" aria-label="늘리기">+</button></div></div>
+          <div class="num-in"><label for="in-lines">제거한 줄 수</label><div class="stepper"><button type="button" data-step="lines" data-d="-1" aria-label="줄이기">−</button><input id="in-lines" inputmode="numeric"><button type="button" data-step="lines" data-d="1" aria-label="늘리기">+</button></div></div>
+        </div>
+        <div class="small muted" id="stage-line"></div>
+        <div class="num-in">
+          <label for="in-risk">전략</label>
+          <input type="range" id="in-risk" min="0" max="100" step="5">
+          <div class="row small muted between"><span>생존 우선</span><span id="risk-val"></span><span>점수 우선 (여러 줄 동시 삭제)</span></div>
+        </div>
+        <button class="primary" id="btn-solve" type="button">추천 계산</button>
+      </section>
+
+      <section class="panel" aria-labelledby="h-res">
+        <h2 id="h-res">추천 결과</h2>
+        <div id="results"></div>
+      </section>
+    </div>
+  </div>
+
+  <section class="panel" aria-labelledby="h-lib">
+    <details>
+      <summary id="h-lib">조각 모양 편집</summary>
+      <div class="stack" style="margin-top:12px">
+        <p class="small muted m0">모양이 틀렸거나 새 조각이 나오면 여기서 고쳐요. 회전·반전은 계산할 때 자동으로 해보니까 방향은 상관없어요. 대각선으로만 붙은 칸도 그대로 인식해요. 편집한 조각 목록은 이 브라우저에 저장돼요.</p>
+        <div class="pieces" id="lib-list"></div>
+        <div class="row">
+          <button class="btn" type="button" id="btn-new">새 조각 추가</button>
+          <button class="btn" type="button" id="btn-reset-lib">기본 조각으로 되돌리기</button>
+        </div>
+        <div id="editor" class="editor" hidden>
+          <div class="row"><label for="ed-name" class="small">이름</label><input id="ed-name" class="text-in" maxlength="3"><span class="small muted" id="ed-count"></span></div>
+          <div class="edgrid" id="ed-grid"></div>
+          <div class="row">
+            <button class="btn" type="button" id="ed-save">저장</button>
+            <button class="btn" type="button" id="ed-del">이 조각 삭제</button>
+            <button class="btn" type="button" id="ed-cancel">닫기</button>
+          </div>
+          <div class="small" id="ed-msg"></div>
+        </div>
+      </div>
+    </details>
+  </section>
+</div>
+
+<script type="module" src="js/app.js"></script>
+</body>
+</html>
